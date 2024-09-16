@@ -1,0 +1,97 @@
+---
+title: "TIDY TUESDAY COLLEGE ADMISSION PROJECT"
+format: html
+editor: visual
+---
+
+
+```{r}
+# Load the required library
+if(!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, bslib, bsicons, htmltools, 
+               reactable)
+options(scipen=999)
+```
+```{r}
+# Load the data
+
+college_admissions <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-09-10/college_admissions.csv')
+
+head(college_admissions)
+```
+```{r}
+sapply(college_admissions, function(x) sum(is.na(x)))
+```
+
+
+
+```{r}
+my_data <- college_admissions %>% 
+                  select(par_income_lab, tier, attend, attend_unwgt)
+head(my_data)
+
+my_data_aggregated <- my_data %>% 
+  group_by(par_income_lab, tier) %>% 
+  summarise(total_attend = sum(attend, na.rm = T), total_attend_unwgt = sum(attend_unwgt, na.rm = T))
+
+head(my_data_aggregated)
+
+write_csv(my_data_aggregated, "my_data_aggregated.csv")
+```
+
+
+
+```{r}
+# Reshape the data to a wide format
+library(tidyr)
+
+heatmap_data <- my_trial_summary %>%
+  select(par_income_lab, tier, total_attend) %>% 
+  pivot_wider(names_from = tier, values_from = total_attend)
+head(heatmap_data)
+
+
+```
+
+
+
+```{r}
+# Create the heatmap for weighted attendance rate
+ggplot(my_data_aggregated, aes( x = par_income_lab, y = tier, fill = total_attend)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightblue", high = "red", na.value = "grey50") +
+  labs(title = str_wrap("Heatmap of Weighted College Attendance Rates by Parental Income and College Tier", width = 50),
+       subtitle = str_wrap("Wealthy Students Show Higher Attendance Rates in Certain Selective Colleges, But Not Universally Across All Tiers", width = 50),
+       y = "College Tier", 
+       x = "Parental Income Group",
+       fill = "Attendance Rate",
+       caption = str_wrap("SOURCE: Opportunity Insights| College Level Data for Selective American Colleges", width = 50)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(here::here("college_admission_weighted.jpeg"),
+       width = 10, height = 5)
+
+
+```
+
+
+```{r}
+# Create the bar plot for unweighted attendance rate
+ggplot(my_data_aggregated, aes(x = par_income_lab, y = total_attend_unwgt)) +
+  geom_col(fill = "blue") +
+ facet_wrap(~ tier) +
+  labs(title = "College Attendance Rates by Parental Income and College Tier", 
+       subtitle = "High Proportions for Students from Wealthy Backgrounds",
+       y = "College Tier", 
+       x = "Parental Income Group",
+       caption = str_wrap("SOURCE: Opportunity Insights| College Level Data for Selective American Colleges", width = 50)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(here::here("college_admission_unweighted.jpeg"),
+       width = 10, height = 5)
+
+
+```
+
